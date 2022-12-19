@@ -50,24 +50,24 @@ func init() {
 	case "linux":
 		{
 			opearingSystem = LINUX
-			goPainlessFileName = "go-painless"
+			goPainlessFileName = "gopher"
 			break
 		}
 	case "windows":
 		{
 			opearingSystem = WINDOWS
-			goPainlessFileName = "go-painless.exe"
+			goPainlessFileName = "gopher.exe"
 			break
 		}
 	case "darwin":
 		{
 			opearingSystem = MAC
-			goPainlessFileName = "go-painless.dmg"
+			goPainlessFileName = "gopher.dmg"
 			break
 		}
 	default:
 		{
-			panic("go-painless does not support the current platform")
+			panic("gopher does not support the current platform")
 		}
 	}
 	usr, err := user.Current()
@@ -75,13 +75,13 @@ func init() {
 		panic(err)
 	}
 	homeDirectory = usr.HomeDir
-	packageDirectory = fmt.Sprintf("%s/%s/%s", homeDirectory, "go-painless", "packages")
+	packageDirectory = fmt.Sprintf("%s/%s/%s", homeDirectory, "gopher", "packages")
 }
 
 func Setup() {
-	path := fmt.Sprintf("%s/%s/%s", homeDirectory, "go-painless", "bin")
+	path := fmt.Sprintf("%s/%s/%s", homeDirectory, "gopher", "bin")
 	if os.Args[0] == fmt.Sprintf("%s/%s", path, goPainlessFileName) {
-		color.Hex(RED).Println("This version of go-painless has already been setup")
+		color.Hex(RED).Println("This version of gopher has already been setup")
 		return
 	}
 	exists, err := Exists(path)
@@ -104,7 +104,7 @@ func Setup() {
 	io.Copy(dest, src)
 	src.Close()
 	dest.Close()
-	color.Hex(GREEN).Println("go-painless setup successfully")
+	color.Hex(GREEN).Println("gopher setup successfully")
 }
 
 func PkgFileNew(name string, version string) {
@@ -226,7 +226,7 @@ func PkgRestore(recursive bool, update bool) {
 		if exists {
 			//ModFileCreate(key, packagePath)
 			workingDirectory := fmt.Sprintf("%s/%s", packagePath, key)
-			Run(fmt.Sprintf("%s/go-painless/bin/%s", homeDirectory, goPainlessFileName), "restore", &workingDirectory)
+			Run(fmt.Sprintf("%s/gopher/bin/%s", homeDirectory, goPainlessFileName), "restore", &workingDirectory)
 		}
 		Run("go", "mod tidy", &packagePath)
 	}
@@ -358,9 +358,9 @@ func getPrivatePackage(url string, name string, recursive bool, update bool) err
 	}
 	if packageFileExists && recursive {
 		// ModFileCreate(name, fmt.Sprintf("%s/%s", packagePath, name))
-		// Run(fmt.Sprintf("%s/go-painless/bin/%s", homeDirectory, goPainlessFileName), "restore", fmt.Sprintf("%s/%s", packagePath, name))
+		// Run(fmt.Sprintf("%s/gopher/bin/%s", homeDirectory, goPainlessFileName), "restore", fmt.Sprintf("%s/%s", packagePath, name))
 		ModFileCreate(name, packagePath)
-		Run(fmt.Sprintf("%s/go-painless/bin/%s", homeDirectory, goPainlessFileName), "restore", &packagePath)
+		Run(fmt.Sprintf("%s/gopher/bin/%s", homeDirectory, goPainlessFileName), "restore", &packagePath)
 	}
 	return nil
 }
