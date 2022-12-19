@@ -12,14 +12,14 @@ import (
 
 type Flags struct {
 	Create  Create  `long:"create" short:"" help:"Used for creating a new project based on an existing template"`
-	Setup   bool    `long:"setup" short:"" help:"Setups go-painless in the system"`
+	Setup   bool    `long:"setup" short:"" help:"Setups gopher in the system"`
 	Init    Init    `long:"init" short:"" help:"Initializes a new project"`
 	Install Install `long:"install" short:"" help:"Installs a dependency"`
 	Remove  Remove  `long:"remove" short:"" help:"Removes an existing dependency"`
 	Restore Restore `long:"restore" short:"" help:"Restores dependencies in an existing project"`
 	Clear   bool    `long:"clear" short:"" help:"Removes go.mod and go.sum files"`
 	Publish Publish `long:"publish" short:"" help:"Builds the project"`
-	Help    bool    `long:"help" short:"" help:"Shows go-painless help"`
+	Help    bool    `long:"help" short:"" help:"Shows gopher help"`
 }
 
 func (f Flags) Run() error {
