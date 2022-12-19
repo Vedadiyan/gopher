@@ -17,7 +17,7 @@ You need to add the path `HomeDirectory/gopher/bin` to your path variables.
 
 ## 💡 Commands 
 
-**gopher falls through the original `go` command when a command is not available. This means that you can use it as a drop-in replacement for the original `go` command.**
+**gopher falls through the original `go` command when a command is not available. This means that you can use it as a drop-in replacement with the original `go` command.**
 
 |Command| Description  | Example | Notes |
 |--|--|--|--|
