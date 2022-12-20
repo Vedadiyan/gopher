@@ -1,5 +1,5 @@
 # Gopher (as an extension to the original `go` CLI)
-![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.18-%23007d9c)
+![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.19-%23007d9c)
 [![Go report](https://goreportcard.com/badge/github.com/vedadiyan/gopher)](https://goreportcard.com/report/github.com/vedadiyan/gopher)
 
 Gopher is a simple package manager that resembles core features and mechanism of npm. It manages and maintains all project's dependencies in a `.json` file allowing them to be restored when required without relying on the `go.mod` and `go.sum` files. When a restore operation is requested, gopher will automatically create `go.mod` and `go.sum` files both for the current project and all its dependencies. Accordingly, `go.mod` and `go.mod` can be added to the `.gitignore` file. 
@@ -17,9 +17,7 @@ You need to add the path `HomeDirectory/gopher/bin` to your path variables.
 
 ## 💡 Commands 
 
-**go-painess falls through the original `go` command when a command is not available. This means that you can use it as a drop-in replacement for the original `go` command.**
-
-*all UPPERCARE flags staring with a single `-` are required*
+**gopher falls through the original `go` command when a command is not available. This means that you can use it as a drop-in replacement with the original `go` command.**
 
 |Command| Description  | Example | Notes |
 |--|--|--|--|
