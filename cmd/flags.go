@@ -107,6 +107,7 @@ func (i Install) Run() error {
 		gopher.Run("go", fmt.Sprintf("install %s", strings.Join(os.Args[2:], "")), nil)
 		return nil
 	}
+	gopher.PkgFileLoad()
 	gopher.PkgAdd(i.Url, i.Name, i.Private, i.Update, i.Recursive)
 	return nil
 }
@@ -135,6 +136,7 @@ type Restore struct {
 }
 
 func (r Restore) Run() error {
+	gopher.PkgFileLoad()
 	gopher.PkgRestore(true, r.Update)
 	if r.Tidy {
 		gopher.Tidy()
