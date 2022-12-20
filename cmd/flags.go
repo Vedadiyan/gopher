@@ -109,6 +109,7 @@ func (i Install) Run() error {
 	}
 	gopher.PkgFileLoad()
 	gopher.PkgAdd(i.Url, i.Name, i.Private, i.Update, i.Recursive)
+	gopher.Write()
 	return nil
 }
 
@@ -138,6 +139,7 @@ type Restore struct {
 func (r Restore) Run() error {
 	gopher.PkgFileLoad()
 	gopher.PkgRestore(true, r.Update)
+	gopher.Write()
 	if r.Tidy {
 		gopher.Tidy()
 	}
