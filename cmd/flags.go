@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gookit/color"
@@ -11,15 +12,16 @@ import (
 )
 
 type Flags struct {
-	Create  Create  `long:"create" short:"" help:"Used for creating a new project based on an existing template"`
-	Setup   bool    `long:"setup" short:"" help:"Setups gopher in the system"`
-	Init    Init    `long:"init" short:"" help:"Initializes a new project"`
-	Install Install `long:"install" short:"" help:"Installs a dependency"`
-	Remove  Remove  `long:"remove" short:"" help:"Removes an existing dependency"`
-	Restore Restore `long:"restore" short:"" help:"Restores dependencies in an existing project"`
-	Clear   bool    `long:"clear" short:"" help:"Removes go.mod and go.sum files"`
-	Publish Publish `long:"publish" short:"" help:"Builds the project"`
-	Help    bool    `long:"help" short:"" help:"Shows gopher help"`
+	Create   Create   `long:"create" short:"" help:"Used for creating a new project based on an existing template"`
+	Setup    bool     `long:"setup" short:"" help:"Setups gopher in the system"`
+	Init     Init     `long:"init" short:"" help:"Initializes a new project"`
+	Install  Install  `long:"install" short:"" help:"Installs a dependency"`
+	Generate Generate `long:"generate" short:"" help:"Experimental Feature"`
+	Remove   Remove   `long:"remove" short:"" help:"Removes an existing dependency"`
+	Restore  Restore  `long:"restore" short:"" help:"Restores dependencies in an existing project"`
+	Clear    bool     `long:"clear" short:"" help:"Removes go.mod and go.sum files"`
+	Publish  Publish  `long:"publish" short:"" help:"Builds the project"`
+	Help     bool     `long:"help" short:"" help:"Shows gopher help"`
 }
 
 func (f Flags) Run() error {
@@ -30,6 +32,10 @@ func (f Flags) Run() error {
 	}
 	if f.Setup {
 		gopher.Setup()
+		return nil
+	}
+	if f.Clear {
+		gopher.Clean()
 		return nil
 	}
 	if f.Help {
@@ -176,5 +182,38 @@ func (p Publish) Run() error {
 		return nil
 	}
 	gopher.Build(p.Runtime, p.Architecture, p.Output, p.Target)
+	return nil
+}
+
+type Generate struct {
+	Source string `long:"--source" short:"-s" help:"Source file to generate code from"`
+	Target string `long:"--target" short:"-t" help:"Target file in which code should be generated"`
+}
+
+func (g Generate) Run() error {
+	errors := make([]error, 0)
+	if len(g.Source) == 0 {
+		errors = append(errors, fmt.Errorf("source is required"))
+	}
+	if len(g.Target) == 0 {
+		errors = append(errors, fmt.Errorf("target is required"))
+	}
+	if len(errors) == 0 {
+		if filepath.IsAbs(g.Source) {
+			fmt.Println("file path should be relative")
+			return nil
+		}
+		path := gopher.ReadModFile()
+		packagePath := filepath.Dir(strings.TrimPrefix(strings.ReplaceAll(g.Source, "\\", "/"), "./"))
+		os.Setenv("GOGEN_PACKAGE", fmt.Sprintf("%s/%s", path, packagePath))
+		gopher.Run("go", fmt.Sprintf("generate %s", g.Source), nil)
+		return nil
+	}
+	if len(errors) == 1 {
+		fmt.Println(errors[0].Error())
+		return nil
+	}
+	color.Hex(gopher.YELLOW).Println("Falling back to `go`")
+	gopher.Run("go", strings.Join(os.Args[1:], " "), nil)
 	return nil
 }

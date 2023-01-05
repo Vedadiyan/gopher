@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/gookit/color"
+	"golang.org/x/mod/modfile"
 )
 
 type Package struct {
@@ -450,4 +451,16 @@ func CreateFromTemplate(templateName string, projectName string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ReadModFile() string {
+	file, err := os.ReadFile("go.mod")
+	if err != nil {
+		panic("Go mod file could not be read")
+	}
+	modfile, err := modfile.Parse("go.mod", file, nil)
+	if err != nil {
+		panic("Go mod file could not be parsed")
+	}
+	return modfile.Module.Mod.Path
 }
