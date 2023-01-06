@@ -12,16 +12,17 @@ import (
 )
 
 type Flags struct {
-	Create   Create   `long:"create" short:"" help:"Used for creating a new project based on an existing template"`
-	Setup    bool     `long:"setup" short:"" help:"Setups gopher in the system"`
-	Init     Init     `long:"init" short:"" help:"Initializes a new project"`
-	Install  Install  `long:"install" short:"" help:"Installs a dependency"`
-	Generate Generate `long:"generate" short:"" help:"Experimental Feature"`
-	Remove   Remove   `long:"remove" short:"" help:"Removes an existing dependency"`
-	Restore  Restore  `long:"restore" short:"" help:"Restores dependencies in an existing project"`
-	Clear    bool     `long:"clear" short:"" help:"Removes go.mod and go.sum files"`
-	Publish  Publish  `long:"publish" short:"" help:"Builds the project"`
-	Help     bool     `long:"help" short:"" help:"Shows gopher help"`
+	Create      Create      `long:"create" short:"" help:"Used for creating a new project based on an existing template"`
+	Setup       bool        `long:"setup" short:"" help:"Setups gopher in the system"`
+	Init        Init        `long:"init" short:"" help:"Initializes a new project"`
+	Install     Install     `long:"install" short:"" help:"Installs a dependency"`
+	Generate    Generate    `long:"generate" short:"" help:"Experimental Feature"`
+	Remove      Remove      `long:"remove" short:"" help:"Removes an existing dependency"`
+	Restore     Restore     `long:"restore" short:"" help:"Restores dependencies in an existing project"`
+	Clear       bool        `long:"clear" short:"" help:"Removes go.mod and go.sum files"`
+	Publish     Publish     `long:"publish" short:"" help:"Builds the project"`
+	Protobuffer Protobuffer `long:"protobuffer" short:"" help:"Generates go files from protobuffers"`
+	Help        bool        `long:"help" short:"" help:"Shows gopher help"`
 }
 
 func (f Flags) Run() error {
@@ -228,4 +229,19 @@ func (g Generate) Run() error {
 	color.Hex(gopher.YELLOW).Println("Falling back to `go`")
 	gopher.Run("go", strings.Join(os.Args[1:], " "), nil)
 	return nil
+}
+
+type Protobuffer struct {
+	OutDir string `long:"--output" short:"-o" help:"Output directory"`
+	File   string `long:"--file" short:"-f" help:"File name"`
+}
+
+func (p Protobuffer) Run() error {
+	path := filepath.Dir(p.File)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	protogenicPath := fmt.Sprintf("%s/gopher/bin/protogenic.exe", home)
+	return gopher.Run("protoc", fmt.Sprintf("--plugin=protoc-gen-protogenic=%s --go_out=./ --proto_path=%s %s --protogenic_out=%s", protogenicPath, path, p.File, p.OutDir), nil)
 }
