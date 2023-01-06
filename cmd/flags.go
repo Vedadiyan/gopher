@@ -205,7 +205,19 @@ func (g Generate) Run() error {
 		}
 		path := gopher.ReadModFile()
 		packagePath := filepath.Dir(strings.TrimPrefix(strings.ReplaceAll(g.Source, "\\", "/"), "./"))
-		os.Setenv("GOGEN_PACKAGE", fmt.Sprintf("%s/%s", path, packagePath))
+		currentDir, err := os.Getwd()
+		if err != nil {
+			return nil
+		}
+		os.Setenv("GOGEN_PACKAGE", strings.ReplaceAll(fmt.Sprintf("%s/%s", path, packagePath), "\\", "/"))
+		os.Setenv("GOGEN_WD", fmt.Sprintf("%s/%s", currentDir, strings.TrimLeftFunc(packagePath, func(r rune) bool {
+			return r == '.' || r == '\\' || r == '/'
+		})))
+		os.Setenv("GOGEN_TARGET", strings.ReplaceAll(fmt.Sprintf("%s/%s", currentDir, strings.TrimLeftFunc(g.Target, func(r rune) bool {
+			return r == '.' || r == '\\' || r == '/'
+		})), "\\", "/"))
+		// fmt.Println(os.Getenv("GOGEN_TARGET"))
+		// fmt.Println(os.Getenv("GOGEN_PACKAGE"))
 		gopher.Run("go", fmt.Sprintf("generate %s", g.Source), nil)
 		return nil
 	}
