@@ -211,9 +211,7 @@ func (g Generate) Run() error {
 			return nil
 		}
 		os.Setenv("GOGEN_PACKAGE", strings.ReplaceAll(fmt.Sprintf("%s/%s", path, packagePath), "\\", "/"))
-		os.Setenv("GOGEN_WD", fmt.Sprintf("%s/%s", currentDir, strings.TrimLeftFunc(packagePath, func(r rune) bool {
-			return r == '.' || r == '\\' || r == '/'
-		})))
+		os.Setenv("GOGEN_WD", currentDir)
 		os.Setenv("GOGEN_TARGET", strings.ReplaceAll(fmt.Sprintf("%s/%s", currentDir, strings.TrimLeftFunc(g.Target, func(r rune) bool {
 			return r == '.' || r == '\\' || r == '/'
 		})), "\\", "/"))
@@ -232,16 +230,98 @@ func (g Generate) Run() error {
 }
 
 type Protobuffer struct {
-	OutDir string `long:"--output" short:"-o" help:"Output directory"`
-	File   string `long:"--file" short:"-f" help:"File name"`
+	OutDir     string  `long:"--output" short:"-o" help:"Output directory"`
+	File       string  `long:"--file" short:"-f" help:"File name"`
+	WebService *string `long:"--web-service" short:"-s" help:"Path to postman collection"`
 }
 
 func (p Protobuffer) Run() error {
+	if len(p.File) == 0 {
+		flaggy.PrintHelp()
+		return fmt.Errorf("--file is required")
+	}
+	if len(p.OutDir) == 0 {
+		flaggy.PrintHelp()
+		return fmt.Errorf("--output is required")
+	}
 	path := filepath.Dir(p.File)
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
+	protoOutput := fmt.Sprintf("%s/pb", p.OutDir)
+	exists, err := gopher.Exists(protoOutput)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		err := os.MkdirAll(protoOutput, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
 	protogenicPath := fmt.Sprintf("%s/gopher/bin/protogenic.exe", home)
-	return gopher.Run("protoc", fmt.Sprintf("--plugin=protoc-gen-protogenic=%s --go_out=./ --proto_path=%s %s --protogenic_out=%s", protogenicPath, path, p.File, p.OutDir), nil)
+	err = gopher.Run("protoc", fmt.Sprintf("--plugin=protoc-gen-protogenic=%s --go_out=%s --proto_path=%s %s --protogenic_out=%s", protogenicPath, protoOutput, path, p.File, protoOutput), nil)
+	if err != nil {
+		return err
+	}
+	dirs := make([]string, 0)
+	files := make([]string, 0)
+	err = GetAllFiles(protoOutput, &dirs, &files, 0)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		fmt.Println(file)
+		err := MoveToBase(protoOutput, file)
+		if err != nil {
+			return err
+		}
+	}
+	for _, dir := range dirs {
+		err := os.RemoveAll(dir)
+		if err != nil {
+			return err
+		}
+	}
+	if p.WebService != nil {
+		clientOutput := fmt.Sprintf("%s/client", p.OutDir)
+		exists, err := gopher.Exists(clientOutput)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			err := os.MkdirAll(clientOutput, os.ModePerm)
+			if err != nil {
+				return nil
+			}
+		}
+		return gopher.Run("autopilot", fmt.Sprintf("httpclient --filename %s --output-dir %s --package client", *p.WebService, clientOutput), nil)
+	}
+	return nil
+}
+
+func GetAllFiles(base string, dirs *[]string, f *[]string, d int) error {
+	files, err := os.ReadDir(base)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			dir := fmt.Sprintf("%s/%s", base, file.Name())
+			*dirs = append(*dirs, dir)
+			GetAllFiles(dir, dirs, f, d+1)
+			continue
+		}
+		if d == 0 {
+			continue
+		}
+		*f = append(*f, fmt.Sprintf("%s/%s", base, file.Name()))
+	}
+	return nil
+}
+
+func MoveToBase(base string, path string) error {
+	filename := filepath.Base(path)
+	return os.Rename(path, fmt.Sprintf("%s/a.%s", base, filename))
 }
