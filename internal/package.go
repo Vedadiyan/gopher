@@ -132,9 +132,20 @@ func PkgFileLoad() {
 }
 
 func ModFileCreate(name string, workingDirectory string) {
-	err := Run("go", fmt.Sprintf("mod init %s", name), &workingDirectory)
+	packages, err := ReadPackageJSON()
 	if err != nil {
-		fmt.Println("WARNING: could not create mod file")
+		panic(err)
+	}
+	modfile := modfile.File{}
+	modfile.AddModuleStmt(packages.Name)
+	modfile.AddGoStmt(packages.Version)
+	data, err := modfile.Format()
+	if err != nil {
+		panic(err)
+	}
+	err = os.WriteFile("go.mod", data, os.ModePerm)
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -177,7 +188,8 @@ func PkgFileCreate(name string, version string) {
 func PkgAdd(uri string, name string, private bool, update bool, recursive bool) {
 	goPackage, ok := gopackage.Packages[name]
 	if ok && !update {
-		panic("Another package with the same name already exists")
+		fmt.Println("WARNING: Another package with the same name already exists")
+		return
 	}
 	if private {
 		err := getPrivatePackage(uri, name, recursive, update)
@@ -220,12 +232,13 @@ func PkgRestore(recursive bool, update bool) {
 		if err != nil {
 			panic(err)
 		}
-		exists, err := Exists(fmt.Sprintf("%s/%s", packagePath, "package.json"))
+		packageFile := fmt.Sprintf("%s/%s", packagePath, "package.json")
+		exists, err := Exists(packageFile)
 		if err != nil {
 			panic(err)
 		}
 		if exists {
-			//ModFileCreate(key, packagePath)
+			GetDependencies(packageFile, update)
 			workingDirectory := fmt.Sprintf("%s/%s", packagePath, key)
 			Run(fmt.Sprintf("%s/gopher/bin/%s", homeDirectory, goPainlessFileName), "restore", &workingDirectory)
 		}
@@ -233,10 +246,37 @@ func PkgRestore(recursive bool, update bool) {
 	}
 }
 
+func GetDependencies(packageFile string, update bool) {
+	exists, err := Exists(packageFile)
+	if err != nil {
+		panic(err)
+	}
+	if !exists {
+		return
+	}
+	fmt.Println(packageFile)
+	packageJSON, err := os.ReadFile(packageFile)
+	if err != nil {
+		panic(err)
+	}
+	packageData := Package{}
+	err = json.Unmarshal(packageJSON, &packageData)
+	if err != nil {
+		panic(err)
+	}
+	for key, value := range packageData.Packages {
+		if value.Private {
+			fmt.Println("Restoring", key)
+			PkgAdd(value.URI, key, true, update, true)
+		}
+	}
+}
+
 func Write() {
 	modFile, err := os.ReadFile("go.mod")
 	if err != nil {
-		panic(err)
+		fmt.Println("NAME", gopackage.Name)
+		ModFileCreate(gopackage.Name, "")
 	}
 	buffer := make([]*string, 0)
 	output := bytes.NewBufferString("")
@@ -333,12 +373,14 @@ func getPrivatePackage(url string, name string, recursive bool, update bool) err
 		os.MkdirAll(packageDirectory, os.ModePerm)
 	}
 	packagePath := fmt.Sprintf("%s/%s", packageDirectory, name)
+	packageFile := fmt.Sprintf("%s/%s", packagePath, packageManagementFileName)
 	packagePathExists, err := Exists(packagePath)
 	if err != nil {
 		return err
 	}
 	if packagePathExists {
 		if !update {
+			GetDependencies(packageFile, update)
 			return nil
 		}
 		os.RemoveAll(packagePath)
@@ -353,15 +395,19 @@ func getPrivatePackage(url string, name string, recursive bool, update bool) err
 	if err != nil {
 		return err
 	}
-	packageFileExists, err := Exists(fmt.Sprintf("%s/%s", packagePath, packageManagementFileName))
+
+	packageFileExists, err := Exists(packageFile)
 	if err != nil {
 		panic(err)
 	}
-	if packageFileExists && recursive {
+	if packageFileExists {
 		// ModFileCreate(name, fmt.Sprintf("%s/%s", packagePath, name))
 		// Run(fmt.Sprintf("%s/gopher/bin/%s", homeDirectory, goPainlessFileName), "restore", fmt.Sprintf("%s/%s", packagePath, name))
-		ModFileCreate(name, packagePath)
-		Run(fmt.Sprintf("%s/gopher/bin/%s", homeDirectory, goPainlessFileName), "restore", &packagePath)
+		GetDependencies(packageFile, update)
+		if recursive {
+			ModFileCreate(name, packagePath)
+			Run(fmt.Sprintf("%s/gopher/bin/%s", homeDirectory, goPainlessFileName), "restore", &packagePath)
+		}
 	}
 	return nil
 }
@@ -463,4 +509,24 @@ func ReadModFile() string {
 		panic("Go mod file could not be parsed")
 	}
 	return modfile.Module.Mod.Path
+}
+
+func ReadPackageJSON() (*Package, error) {
+	exists, err := Exists(packageManagementFileName)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, err
+	}
+	packageJSON, err := os.ReadFile(packageManagementFileName)
+	if err != nil {
+		return nil, err
+	}
+	packages := Package{}
+	err = json.Unmarshal(packageJSON, &packages)
+	if err != nil {
+		return nil, err
+	}
+	return &packages, nil
 }
